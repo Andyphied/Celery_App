@@ -1,12 +1,15 @@
 from datetime import datetime
+import json
 from redis import Redis
 from celery import Celery
 from scrapy.crawler import CrawlerProcess
 
-from scarpe import TestSpider
+from rand_script import generate_rand_list
 
 # Uses database 1 in your local redis database
 redis = Redis(db=1)
+
+red = Redis()
 
 process = CrawlerProcess()
 app = Celery()
@@ -33,18 +36,19 @@ def task_01():
 def task_02():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
-    process.crawl(TestSpider)
-    process.start()
+    rand_list = json.dumps(generate_rand_list())
     if redis.exists('task_01'):
         _dict = redis.hgetall('task_01')
         #helps for auto increment during each run
         num = str(len(_dict) + 1)
-        redis.hset("task_02", num, str_dt)
+        new_dict = {'num': str_dt, 'result': rand_list}
+        redis.hmset('task_02', new_dict)
     else:
-        redis.hset("task_02", "1", str_dt)
+        new_dict = {'1': str_dt, 'result': rand_list}
+        redis.hmset('task_02', new_dict)
 
     task_03.delay()
-    return str_dt
+    return rand_list
 
 
 @app.task(name='task_03')
