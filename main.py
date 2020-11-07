@@ -1,10 +1,14 @@
 from datetime import datetime
 from redis import Redis
 from celery import Celery
+from scrapy.crawler import CrawlerProcess
+
+from scarpe import TestSpider
 
 # Uses database 1 in your local redis database
 redis = Redis(db=1)
 
+process = CrawlerProcess()
 app = Celery()
 app.config_from_object('celeryconfig')
 
@@ -29,6 +33,8 @@ def task_01():
 def task_02():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
+    process.crawl(TestSpider)
+    process.start()
     if redis.exists('task_01'):
         _dict = redis.hgetall('task_01')
         #helps for auto increment during each run
