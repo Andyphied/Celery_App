@@ -2,16 +2,19 @@ from datetime import datetime
 import json
 from redis import Redis
 from celery import Celery
-from scrapy.crawler import CrawlerProcess
+from scrapy.crawler import CrawlerRunner
+from twisted.internet import reactor
+from crochet import setup
 
 from rand_script import generate_rand_list
+from blog_spider import BlogSpider
 
 # Uses database 1 in your local redis database
 redis = Redis(db=1)
 
 red = Redis()
 
-process = CrawlerProcess()
+runner = CrawlerRunner()
 app = Celery()
 app.config_from_object('celeryconfig')
 
@@ -36,32 +39,34 @@ def task_01():
 def task_02():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
-    rand_list = json.dumps(generate_rand_list())
-    if redis.exists('task_01'):
-        _dict = redis.hgetall('task_01')
+    setup()
+    d = runner.crawl(BlogSpider)
+    if redis.exists("task_02"):
+        _dict = redis.hgetall('task_02')
         #helps for auto increment during each run
         num = str(len(_dict) + 1)
-        new_dict = {'num': str_dt, 'result': rand_list}
-        redis.hmset('task_02', new_dict)
+        redis.hset("task_02", num, str_dt)
     else:
-        new_dict = {'1': str_dt, 'result': rand_list}
-        redis.hmset('task_02', new_dict)
+        redis.hset("task_02", "1", str_dt)
 
     task_03.delay()
-    return rand_list
+    return str_dt
 
 
 @app.task(name='task_03')
 def task_03():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
-    if redis.exists("task_01"):
-        _dict = redis.hgetall('task_01')
+    rand_list = json.dumps(generate_rand_list())
+    if redis.exists('task_03'):
+        _dict = redis.hgetall('task_03')
         #helps for auto increment during each run
         num = str(len(_dict) + 1)
-        redis.hset("task_03", num, str_dt)
+        new_dict = {num: str_dt, 'result': rand_list}
+        redis.hmset('task_03', new_dict)
     else:
-        redis.hset("task_03", "1", str_dt)
+        new_dict = {'1': str_dt, 'result': rand_list}
+        redis.hmset('task_03', new_dict)
 
     task_04.delay()
     return str_dt
@@ -71,8 +76,8 @@ def task_03():
 def task_04():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
-    if redis.exists("task_01"):
-        _dict = redis.hgetall('task_01')
+    if redis.exists("task_04"):
+        _dict = redis.hgetall('task_04')
         #helps for auto increment during each run
         num = str(len(_dict) + 1)
         redis.hset("task_04", num, str_dt)
