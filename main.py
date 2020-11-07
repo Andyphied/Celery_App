@@ -25,7 +25,7 @@ def task_01():
     str_dt = str(date_time.isoformat)
     if redis.exists("task_01"):
         _dict = redis.hgetall('task_01')
-        #helps for auto increment during each run
+        # helps for auto increment during each run
         num = str(len(_dict) + 1)
         redis.hset("task_01", num, str_dt)
     else:
@@ -39,7 +39,7 @@ def task_01():
 def task_02():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
-    setup()
+    setup()  # Helps to ensure the reaxtor is closed
     d = runner.crawl(BlogSpider)
     if redis.exists("task_02"):
         _dict = redis.hgetall('task_02')
