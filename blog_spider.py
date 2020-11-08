@@ -577,10 +577,7 @@ def spider_results():
             d.addBoth(lambda _: reactor.stop())
             reactor.run()
             q.put(None)
-            res.put(results)
         except Exception as e:
-            q.put(e)
-
     q = Queue()
     res = Queue()
     p = Process(target=f, args=(q, ))
