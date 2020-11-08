@@ -576,6 +576,7 @@ def spider_results():
             d = process.crawl(crawler)
             d.addBoth(lambda _: reactor.stop())
             reactor.run()
+            res.put(results)
             q.put(None)
         except Exception as e:
     q = Queue()
