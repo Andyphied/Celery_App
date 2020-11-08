@@ -2,19 +2,19 @@ from datetime import datetime
 import json
 from redis import Redis
 from celery import Celery
-from scrapy.crawler import CrawlerRunner
+from scrapy.crawler import CrawlerRunner, CrawlerProcess
 from twisted.internet import reactor
-from crochet import setup
 
 from rand_script import generate_rand_list
-from blog_spider import BlogSpider
+from blog_spider import BlogSpider, spider_results
 
 # Uses database 1 in your local redis database
 redis = Redis(db=1)
 
 red = Redis()
 
-runner = CrawlerRunner()
+#runner = CrawlerRunner()
+
 app = Celery()
 app.config_from_object('celeryconfig')
 
@@ -39,18 +39,20 @@ def task_01():
 def task_02():
     date_time = datetime.now()
     str_dt = str(date_time.isoformat)
-    setup()  # Helps to ensure the reaxtor is closed
-    d = runner.crawl(BlogSpider)
+    result = spider_results()
+    str_result = json.dumps(result)
     if redis.exists("task_02"):
         _dict = redis.hgetall('task_02')
         #helps for auto increment during each run
         num = str(len(_dict) + 1)
-        redis.hset("task_02", num, str_dt)
+        new_dict = {num: str_dt, 'result': str_result}
+        redis.hmset('task_02', new_dict)
     else:
-        redis.hset("task_02", "1", str_dt)
+        new_dict = {'1': str_dt, 'result': str_result}
+        redis.hmset('task_02', new_dict)
 
     task_03.delay()
-    return str_dt
+    return result
 
 
 @app.task(name='task_03')
